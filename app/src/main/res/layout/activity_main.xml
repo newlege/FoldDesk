@@ -2,108 +2,129 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/surface"
+    android:fitsSystemWindows="false"
     tools:context=".MainActivity">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <LinearLayout
+        android:id="@+id/chromeRoot"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="@color/toolbar"
-        android:minHeight="?attr/actionBarSize"
-        android:paddingStart="@dimen/toolbar_padding_horizontal"
-        android:paddingEnd="@dimen/toolbar_padding_horizontal"
+        android:orientation="vertical"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:title="@string/app_name"
-        app:titleTextColor="@color/on_toolbar" />
+        app:layout_constraintTop_toTopOf="parent">
 
-    <LinearLayout
-        android:id="@+id/chromeBar"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingStart="@dimen/chrome_horizontal_padding"
-        android:paddingTop="@dimen/chrome_vertical_padding"
-        android:paddingEnd="@dimen/chrome_horizontal_padding"
-        android:paddingBottom="@dimen/chrome_vertical_padding"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar">
+        <HorizontalScrollView
+            android:id="@+id/tabScroll"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/chrome_tab_strip_height"
+            android:fillViewport="false"
+            android:paddingStart="@dimen/chrome_horizontal_padding"
+            android:paddingEnd="@dimen/chrome_horizontal_padding"
+            android:scrollbars="none">
 
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/buttonBack"
-            android:layout_width="@dimen/chrome_button_size"
-            android:layout_height="@dimen/chrome_button_size"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/back"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_media_previous"
-            app:tint="@color/on_surface" />
+            <LinearLayout
+                android:id="@+id/tabContainer"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
 
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/buttonForward"
-            android:layout_width="@dimen/chrome_button_size"
-            android:layout_height="@dimen/chrome_button_size"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/forward"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_media_next"
-            app:tint="@color/on_surface" />
-
-        <androidx.appcompat.widget.AppCompatImageButton
-            android:id="@+id/buttonReload"
-            android:layout_width="@dimen/chrome_button_size"
-            android:layout_height="@dimen/chrome_button_size"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/reload"
-            android:scaleType="centerInside"
-            android:src="@android:drawable/ic_popup_sync"
-            app:tint="@color/on_surface" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="0dp"
+        <LinearLayout
+            android:id="@+id/chromeBar"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_weight="1"
-            app:boxBackgroundMode="outline"
-            app:hintEnabled="false">
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/chrome_horizontal_padding"
+            android:paddingTop="@dimen/chrome_vertical_padding"
+            android:paddingEnd="@dimen/chrome_horizontal_padding"
+            android:paddingBottom="@dimen/chrome_vertical_padding">
 
-            <com.google.android.material.textfield.TextInputEditText
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonBack"
+                android:layout_width="@dimen/chrome_button_size"
+                android:layout_height="@dimen/chrome_button_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/back"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_media_previous"
+                app:tint="@color/on_surface" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonForward"
+                android:layout_width="@dimen/chrome_button_size"
+                android:layout_height="@dimen/chrome_button_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/forward"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_media_next"
+                app:tint="@color/on_surface" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonReload"
+                android:layout_width="@dimen/chrome_button_size"
+                android:layout_height="@dimen/chrome_button_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/reload"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_popup_sync"
+                app:tint="@color/on_surface" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonNewTab"
+                android:layout_width="@dimen/chrome_button_size"
+                android:layout_height="@dimen/chrome_button_size"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/new_tab"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_input_add"
+                app:tint="@color/on_surface" />
+
+            <EditText
                 android:id="@+id/editUrl"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_width="0dp"
+                android:layout_height="@dimen/chrome_url_height"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:background="@drawable/url_field_background"
                 android:hint="@string/hint_url"
                 android:imeOptions="actionGo"
                 android:inputType="textUri|textNoSuggestions"
                 android:maxLines="1"
-                android:minHeight="@dimen/chrome_button_size"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:textColor="@color/on_surface"
+                android:textColorHint="#FF9AA0A6"
                 android:textSize="@dimen/chrome_url_text_size" />
-        </com.google.android.material.textfield.TextInputLayout>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/buttonGo"
-            style="@style/Widget.MaterialComponents.Button"
-            android:layout_width="wrap_content"
-            android:layout_height="@dimen/chrome_button_size"
-            android:layout_marginStart="12dp"
-            android:minWidth="@dimen/chrome_go_min_width"
-            android:text="@string/go"
-            android:textSize="@dimen/chrome_url_text_size" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/buttonGo"
+                style="@style/Widget.FoldDesk.CompactButton"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/chrome_url_height"
+                android:layout_marginStart="6dp"
+                android:minWidth="@dimen/chrome_go_min_width"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:text="@string/go"
+                android:textSize="@dimen/chrome_url_text_size" />
+        </LinearLayout>
     </LinearLayout>
 
-    <WebView
-        android:id="@+id/webView"
+    <FrameLayout
+        android:id="@+id/webViewContainer"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:overScrollMode="never"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/chromeBar" />
+        app:layout_constraintTop_toBottomOf="@id/chromeRoot" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -67,13 +67,20 @@ FOLDDESK_WIDTH=1920 FOLDDESK_HEIGHT=1200 ./scripts/desktop-preview.sh
 
 **已知限制**：`navigator.platform` 在 Android WebView 上仍可能为 `Linux armv8l`，无公开 API 改为 `Win32`。依赖 UA / Client Hints 的站点一般可识别为桌面；仅检查 `platform` 的 legacy 脚本可能仍判为 Android。
 
+**与桌面 Chrome 的差距**：Blink 版本随系统 WebView 而变；无扩展；部分 CSS/字体/PDF/插件与 PC Chrome 不同；政务/金融站点可能仍识别 WebView。本应用通过桌面 UA、Client Hints（可用时）、宽 viewport 与 `DesktopViewportHelper` 尽量贴近桌面，**不保证**与 PC Chrome 完全一致。
+
 配置常量见 `app/src/main/java/com/folddesk/browser/DesktopUserAgent.kt`。
+
+## 多标签
+
+- 顶部标签条：点击切换、× 关闭（仅剩一个标签时关闭会回到起始页）
+- **+** 新建标签；`target=_blank` / `window.open` 经 `WebChromeClient.onCreateWindow` 打开新标签
+- 每个标签独立 WebView，创建时统一应用桌面 UA / WebView 设置
 
 ## 布局说明
 
-- 默认 `layout/activity_main.xml` + `values/dimens.xml`  
-- 平板：`values-sw600dp`、`values-sw720dp` 增大按钮、地址栏字号与边距  
-- WebView 占满除工具栏/地址栏外的区域；支持可调整大小的 Activity（折叠屏分屏/旋转）
+- **无独立大标题栏**：仅紧凑标签条（约 34dp）+ 单行导航/地址栏（约 40dp 按钮 + 36dp 地址框）+ 系统状态栏 inset
+- 平板：`sw600dp` / `sw720dp` 略增大触控尺寸；WebView 占满剩余区域
 
 ## 下一步迭代建议
 

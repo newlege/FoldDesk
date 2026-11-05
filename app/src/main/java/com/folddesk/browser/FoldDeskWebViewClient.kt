@@ -4,13 +4,16 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 
-/**
- * Ensures every navigation and subresource request carries desktop headers / UA override.
- */
 class FoldDeskWebViewClient(
-    private val onPageStarted: (String?) -> Unit = {},
-    private val onPageFinished: (String?) -> Unit = {},
+    private val tab: BrowserTab,
+    private val callbacks: Callbacks,
 ) : WebViewClient() {
+
+    interface Callbacks {
+        fun onPageStarted(tab: BrowserTab, url: String?)
+        fun onPageFinished(tab: BrowserTab, url: String?)
+        fun openUrlInNewTab(url: String): Boolean
+    }
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         if (!request.isForMainFrame) {
@@ -29,11 +32,14 @@ class FoldDeskWebViewClient(
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
         super.onPageStarted(view, url, favicon)
-        onPageStarted(url)
+        callbacks.onPageStarted(tab, url)
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        onPageFinished(url)
+        if (view != null) {
+            DesktopViewportHelper.apply(view)
+        }
+        callbacks.onPageFinished(tab, url)
     }
 }

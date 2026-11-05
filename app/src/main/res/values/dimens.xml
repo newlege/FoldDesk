@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="chrome_horizontal_padding">12dp</dimen>
-    <dimen name="chrome_vertical_padding">8dp</dimen>
-    <dimen name="chrome_button_size">48dp</dimen>
-    <dimen name="chrome_url_text_size">16sp</dimen>
-    <dimen name="chrome_go_min_width">64dp</dimen>
-    <dimen name="toolbar_padding_horizontal">8dp</dimen>
+    <dimen name="chrome_horizontal_padding">8dp</dimen>
+    <dimen name="chrome_vertical_padding">2dp</dimen>
+    <dimen name="chrome_button_size">40dp</dimen>
+    <dimen name="chrome_url_height">36dp</dimen>
+    <dimen name="chrome_url_text_size">14sp</dimen>
+    <dimen name="chrome_go_min_width">52dp</dimen>
+    <dimen name="chrome_tab_strip_height">34dp</dimen>
+    <dimen name="chrome_tab_text_size">12sp</dimen>
+    <dimen name="chrome_tab_close_size">28dp</dimen>
 </resources>
