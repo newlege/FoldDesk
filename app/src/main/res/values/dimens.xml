@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="chrome_horizontal_padding">12dp</dimen>
+    <dimen name="chrome_vertical_padding">8dp</dimen>
+    <dimen name="chrome_button_size">48dp</dimen>
+    <dimen name="chrome_url_text_size">16sp</dimen>
+    <dimen name="chrome_go_min_width">64dp</dimen>
+    <dimen name="toolbar_padding_horizontal">8dp</dimen>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">FoldDesk Browser</string>
+    <string name="hint_url">输入网址或搜索</string>
+    <string name="hint_home">起始页（FoldDesk）</string>
+    <string name="back">后退</string>
+    <string name="forward">前进</string>
+    <string name="reload">刷新</string>
+    <string name="go">前往</string>
+</resources>

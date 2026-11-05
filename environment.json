@@ -1,0 +1,3 @@
+{
+  "install": "set -euo pipefail\nROOT=\"$(pwd)\"\nif [ ! -d \"$ROOT/android-sdk/platform-tools\" ]; then\n  mkdir -p \"$ROOT/android-sdk/cmdline-tools\"\n  curl -fsSL -o /tmp/cmdline-tools.zip \"https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip\"\n  unzip -q -o /tmp/cmdline-tools.zip -d \"$ROOT/android-sdk/cmdline-tools\"\n  mv \"$ROOT/android-sdk/cmdline-tools/cmdline-tools\" \"$ROOT/android-sdk/cmdline-tools/latest\" 2>/dev/null || true\n  export ANDROID_HOME=\"$ROOT/android-sdk\"\n  export PATH=\"$PATH:$ANDROID_HOME/cmdline-tools/latest/bin\"\n  yes | sdkmanager --licenses >/dev/null\n  sdkmanager \"platform-tools\" \"platforms;android-35\" \"build-tools;35.0.0\"\nfi\nchmod +x gradlew scripts/*.sh\n./scripts/build-apk.sh"
+}

@@ -1,0 +1,16 @@
+# Gradle / Android
+.gradle/
+build/
+app/build/
+local.properties
+*.iml
+.idea/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# SDK (optional local checkout)
+android-sdk/
+
+# OS
+.DS_Store
