@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="chrome_horizontal_padding">12dp</dimen>
-    <dimen name="chrome_button_size">42dp</dimen>
-    <dimen name="chrome_url_height">38dp</dimen>
-    <dimen name="chrome_url_text_size">15sp</dimen>
+    <dimen name="chrome_horizontal_padding">8dp</dimen>
+    <dimen name="chrome_button_size">38dp</dimen>
+    <dimen name="chrome_url_height">34dp</dimen>
+    <dimen name="chrome_url_text_size">14sp</dimen>
+    <dimen name="chrome_tab_strip_height">30dp</dimen>
 </resources>
