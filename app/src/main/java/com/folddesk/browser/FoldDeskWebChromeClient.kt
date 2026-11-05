@@ -11,7 +11,7 @@ class FoldDeskWebChromeClient(
 
     interface Callbacks {
         fun onTitleChanged(tab: BrowserTab, title: String?)
-        fun onCreateWindow(fromTab: BrowserTab, resultMsg: Message): Boolean
+        fun onCreateWindow(fromTab: BrowserTab, opener: WebView, resultMsg: Message): Boolean
     }
 
     override fun onReceivedTitle(view: WebView?, title: String?) {
@@ -28,8 +28,8 @@ class FoldDeskWebChromeClient(
         isUserGesture: Boolean,
         resultMsg: Message?,
     ): Boolean {
-        if (resultMsg == null) return false
-        return callbacks.onCreateWindow(tab, resultMsg)
+        if (resultMsg == null || view == null) return false
+        return callbacks.onCreateWindow(tab, view, resultMsg)
     }
 
     override fun onCloseWindow(window: WebView?) {

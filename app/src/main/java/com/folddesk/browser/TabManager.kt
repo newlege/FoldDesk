@@ -34,6 +34,7 @@ class TabManager(
 
     fun createTab(loadUrl: String?, select: Boolean = true): BrowserTab? {
         return try {
+            Log.i(TAG, "createTab url=$loadUrl select=$select")
             val webView = host.createConfiguredWebView()
             val tab = BrowserTab(
                 id = nextTabId++,
@@ -54,11 +55,11 @@ class TabManager(
     }
 
     /**
-     * Popup path for target=_blank / window.open.
-     * Does not switch away from the opener until after WebViewTransport handoff completes.
+     * Transport path only — caller must [selectTab] after child [WebViewClient.onPageStarted].
      */
     fun createTabForWindowHandoff(onHandoff: (WebView) -> Unit): BrowserTab? {
         return try {
+            Log.i(TAG, "createTabForWindowHandoff begin")
             val webView = host.createConfiguredWebView()
             val tab = BrowserTab(
                 id = nextTabId++,
@@ -68,13 +69,7 @@ class TabManager(
             tabs.add(tab)
             host.onTabAdded(tab, select = false)
             onHandoff(webView)
-            webView.post {
-                try {
-                    selectTab(tab)
-                } catch (t: Throwable) {
-                    Log.e(TAG, "select tab after handoff failed", t)
-                }
-            }
+            Log.i(TAG, "createTabForWindowHandoff done tabId=${tab.id}")
             tab
         } catch (t: Throwable) {
             Log.e(TAG, "createTabForWindowHandoff failed", t)
@@ -84,6 +79,7 @@ class TabManager(
     }
 
     fun selectTab(tab: BrowserTab) {
+        Log.i(TAG, "selectTab id=${tab.id}")
         activeTabId = tab.id
         host.onTabSelected(tab)
     }
@@ -99,8 +95,6 @@ class TabManager(
         selectTab(next)
         return next
     }
-
-    fun indexOf(tab: BrowserTab): Int = tabs.indexOf(tab)
 
     companion object {
         const val TAG = "FoldDeskTabs"

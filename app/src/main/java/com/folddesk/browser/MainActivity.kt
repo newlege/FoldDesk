@@ -1,6 +1,5 @@
 package com.folddesk.browser
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.os.Message
 import android.util.Log
@@ -22,8 +21,13 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     private lateinit var binding: ActivityMainBinding
     private lateinit var tabManager: TabManager
     private val startPageUrl = "file:///android_asset/start.html"
+    private val popupLinkTracker = PopupLinkTracker()
 
     private val tabChipBindings = mutableMapOf<Long, ItemTabBinding>()
+
+    /** Child tab waiting for first real navigation before UI switch (Transport path). */
+    private var pendingPopupTabId: Long = -1L
+    private var popupOpenerTabId: Long = -1L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -69,7 +73,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     override fun createConfiguredWebView(): WebView {
         val webView = WebView(this)
         webView.overScrollMode = WebView.OVER_SCROLL_NEVER
-        webView.visibility = View.GONE
+        webView.visibility = View.INVISIBLE
         WebViewConfigurator.configure(webView)
         return webView
     }
@@ -78,6 +82,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         if (tab.title.isEmpty()) {
             tab.title = getString(R.string.tab_default_title)
         }
+        popupLinkTracker.attach(tab.webView)
         attachClients(tab)
         binding.webViewContainer.addView(
             tab.webView,
@@ -89,18 +94,40 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         addTabChip(tab)
         if (select) {
             tabManager.selectTab(tab)
+        } else {
+            applyWebViewVisibility(tabManager.activeTab(), tab)
         }
     }
 
     override fun onTabSelected(tab: BrowserTab) {
+        val active = tab
         tabManager.allTabs().forEach { t ->
-            t.webView.visibility = if (t.id == tab.id) View.VISIBLE else View.GONE
+            applyWebViewVisibility(active, t)
         }
-        updateTabChipSelection(tab.id)
-        syncAddressBar(tab.webView.url)
+        updateTabChipSelection(active.id)
+        syncAddressBar(active.webView.url)
         binding.tabScroll.post {
-            tabChipBindings[tab.id]?.root?.let { chip ->
+            tabChipBindings[active.id]?.root?.let { chip ->
                 binding.tabScroll.smoothScrollTo(chip.left, 0)
+            }
+        }
+    }
+
+    /**
+     * Honor WebView: avoid GONE on opener during popup handoff; use INVISIBLE for background tabs.
+     */
+    private fun applyWebViewVisibility(active: BrowserTab?, tab: BrowserTab) {
+        val webView = tab.webView
+        when {
+            active != null && tab.id == active.id -> {
+                webView.visibility = View.VISIBLE
+                webView.bringToFront()
+            }
+            pendingPopupTabId != -1L && tab.id == popupOpenerTabId -> {
+                webView.visibility = View.VISIBLE
+            }
+            else -> {
+                webView.visibility = View.INVISIBLE
             }
         }
     }
@@ -126,10 +153,17 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
 
     private val webViewCallbacks = object : FoldDeskWebViewClient.Callbacks {
         override fun onPageStarted(tab: BrowserTab, url: String?) {
+            Log.d(TabManager.TAG, "onPageStarted tab=${tab.id} url=$url pendingPopup=$pendingPopupTabId")
+            if (tab.id == pendingPopupTabId && isRealNavigation(url)) {
+                completePopupHandoff(tab, url)
+            }
             if (tabManager.activeTab()?.id == tab.id) syncAddressBar(url)
         }
 
         override fun onPageFinished(tab: BrowserTab, url: String?) {
+            if (tab.id == pendingPopupTabId && isRealNavigation(url)) {
+                completePopupHandoff(tab, url)
+            }
             if (tabManager.activeTab()?.id == tab.id) syncAddressBar(url)
             updateTabChipTitle(tab)
         }
@@ -148,33 +182,98 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
             }
         }
 
-        override fun onCreateWindow(fromTab: BrowserTab, resultMsg: Message): Boolean {
-            return handleCreateWindow(resultMsg)
+        override fun onCreateWindow(fromTab: BrowserTab, opener: WebView, resultMsg: Message): Boolean {
+            return handleCreateWindow(fromTab, opener, resultMsg)
         }
     }
 
-    private fun handleCreateWindow(resultMsg: Message): Boolean {
+    private fun handleCreateWindow(openerTab: BrowserTab, opener: WebView, resultMsg: Message): Boolean {
+        Log.i(TabManager.TAG, "onCreateWindow start openerTab=${openerTab.id}")
         return try {
-            val transport = resultMsg.obj as? WebView.WebViewTransport
-            if (transport == null) {
-                Log.e(TabManager.TAG, "onCreateWindow: missing WebViewTransport on Message")
+            val directUrl = resolvePopupUrl(opener)
+            if (directUrl != null) {
+                Log.i(TabManager.TAG, "onCreateWindow hybrid direct tab url=$directUrl")
+                popupLinkTracker.consumeFrom(opener)
+                opener.post {
+                    try {
+                        tabManager.createTab(directUrl)
+                    } catch (t: Throwable) {
+                        Log.e(TabManager.TAG, "hybrid createTab failed", t)
+                    }
+                }
                 return false
             }
-            val tab = tabManager.createTabForWindowHandoff { childWebView ->
+
+            Log.i(TabManager.TAG, "onCreateWindow using WebViewTransport fallback")
+            val transport = resultMsg.obj as? WebView.WebViewTransport
+            if (transport == null) {
+                Log.e(TabManager.TAG, "onCreateWindow: no WebViewTransport")
+                return false
+            }
+            val childTab = tabManager.createTabForWindowHandoff { childWebView ->
+                Log.i(TabManager.TAG, "onCreateWindow transport assign child tabId pending")
                 transport.webView = childWebView
                 resultMsg.sendToTarget()
             }
-            if (tab == null) {
-                Log.e(TabManager.TAG, "onCreateWindow: failed to create child tab")
+            if (childTab == null) {
+                Log.e(TabManager.TAG, "onCreateWindow: child tab creation failed")
                 false
             } else {
-                Log.i(TabManager.TAG, "onCreateWindow: handoff ok tabId=${tab.id}")
+                pendingPopupTabId = childTab.id
+                popupOpenerTabId = openerTab.id
+                Log.i(TabManager.TAG, "onCreateWindow transport ok child=${childTab.id} opener=${openerTab.id}")
                 true
             }
         } catch (t: Throwable) {
-            Log.e(TabManager.TAG, "onCreateWindow crashed", t)
+            Log.e(TabManager.TAG, "onCreateWindow fatal", t)
+            clearPopupHandoff()
             false
         }
+    }
+
+    private fun completePopupHandoff(tab: BrowserTab, url: String?) {
+        Log.i(TabManager.TAG, "completePopupHandoff tab=${tab.id} url=$url")
+        clearPopupHandoff()
+        tabManager.selectTab(tab)
+    }
+
+    private fun clearPopupHandoff() {
+        pendingPopupTabId = -1L
+        popupOpenerTabId = -1L
+    }
+
+    private fun resolvePopupUrl(opener: WebView): String? {
+        popupLinkTracker.consumeFrom(opener)?.let { return normalizePopupUrl(it) }
+        val hit = opener.hitTestResult
+        if (hit != null) {
+            when (hit.type) {
+                WebView.HitTestResult.SRC_ANCHOR_TYPE,
+                WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE,
+                -> hit.extra?.let { return normalizePopupUrl(it) }
+            }
+        }
+        return null
+    }
+
+    private fun normalizePopupUrl(raw: String): String? {
+        val trimmed = raw.trim()
+        if (trimmed.isEmpty()) return null
+        if (trimmed.startsWith("javascript:", ignoreCase = true)) return null
+        if (trimmed.startsWith("http://", ignoreCase = true) ||
+            trimmed.startsWith("https://", ignoreCase = true)
+        ) {
+            return trimmed
+        }
+        if (trimmed.startsWith("//")) {
+            return "https:$trimmed"
+        }
+        return null
+    }
+
+    private fun isRealNavigation(url: String?): Boolean {
+        if (url.isNullOrBlank()) return false
+        if (url == "about:blank") return false
+        return true
     }
 
     private fun addTabChip(tab: BrowserTab) {
@@ -197,6 +296,9 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     }
 
     private fun closeTab(tab: BrowserTab) {
+        if (tab.id == pendingPopupTabId || tab.id == popupOpenerTabId) {
+            clearPopupHandoff()
+        }
         tabManager.closeTab(tab) { last ->
             last.webView.loadUrl(startPageUrl, DesktopUserAgent.extraHttpHeaders())
             last.title = getString(R.string.tab_default_title)
