@@ -6,4 +6,5 @@ data class BrowserTab(
     val id: Long,
     val webView: WebView,
     var title: String,
+    val linkBridge: FoldDeskLinkBridge = FoldDeskLinkBridge(),
 )

@@ -24,30 +24,25 @@ class PopupLinkTracker {
     fun record(webView: WebView) {
         try {
             val hit = webView.hitTestResult ?: return
-            when (hit.type) {
-                WebView.HitTestResult.SRC_ANCHOR_TYPE,
-                WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE,
-                -> {
-                    val url = hit.extra
-                    if (!url.isNullOrBlank()) {
-                        lastUrl = url
-                        lastWebView = webView
-                        Log.d(TabManager.TAG, "record link tap url=$url")
-                    }
-                }
+            if (hit.type != WebView.HitTestResult.SRC_ANCHOR_TYPE &&
+                hit.type != WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE
+            ) {
+                return
+            }
+            val url = hit.extra
+            if (url.isNullOrBlank()) return
+            PopupNavigationUrl.acceptOrLog("hit-test-record", url)?.let { accepted ->
+                lastUrl = accepted
+                lastWebView = webView
             }
         } catch (t: Throwable) {
             Log.w(TabManager.TAG, "record link tap failed", t)
         }
     }
 
-    fun peekFrom(webView: WebView): String? {
-        val url = lastUrl
-        return if (url != null && lastWebView === webView) url else null
-    }
-
     fun consumeFrom(webView: WebView): String? {
-        val url = peekFrom(webView) ?: return null
+        val url = lastUrl
+        if (url == null || lastWebView !== webView) return null
         lastUrl = null
         lastWebView = null
         return url

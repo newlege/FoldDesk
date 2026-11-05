@@ -11,8 +11,8 @@ android {
         applicationId = "com.folddesk.browser"
         minSdk = 26
         targetSdk = 35
-        versionCode = 5
-        versionName = "0.1.4-mvp"
+        versionCode = 6
+        versionName = "0.1.5-mvp"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

@@ -141,6 +141,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     }
 
     private fun attachClients(tab: BrowserTab) {
+        tab.webView.addJavascriptInterface(tab.linkBridge, "FoldDeskBridge")
         tab.webView.webViewClient = FoldDeskWebViewClient(
             tab = tab,
             callbacks = webViewCallbacks,
@@ -190,10 +191,11 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     private fun handleCreateWindow(openerTab: BrowserTab, opener: WebView, resultMsg: Message): Boolean {
         Log.i(TabManager.TAG, "onCreateWindow start openerTab=${openerTab.id}")
         return try {
-            val directUrl = resolvePopupUrl(opener)
+            val directUrl = resolvePopupUrl(openerTab, opener)
             if (directUrl != null) {
                 Log.i(TabManager.TAG, "onCreateWindow hybrid direct tab url=$directUrl")
                 popupLinkTracker.consumeFrom(opener)
+                openerTab.linkBridge.consumeBlankHref()
                 opener.post {
                     try {
                         tabManager.createTab(directUrl)
@@ -242,16 +244,35 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         popupOpenerTabId = -1L
     }
 
-    private fun resolvePopupUrl(opener: WebView): String? {
-        popupLinkTracker.consumeFrom(opener)?.let { return normalizePopupUrl(it) }
-        val hit = opener.hitTestResult
-        if (hit != null) {
-            when (hit.type) {
-                WebView.HitTestResult.SRC_ANCHOR_TYPE,
-                WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE,
-                -> hit.extra?.let { return normalizePopupUrl(it) }
+    private fun resolvePopupUrl(openerTab: BrowserTab, opener: WebView): String? {
+        openerTab.linkBridge.consumeBlankHref()?.let { raw ->
+            normalizePopupUrl(raw)?.let { normalized ->
+                PopupNavigationUrl.acceptOrLog("js-bridge-resolve", normalized)?.let { return it }
             }
         }
+
+        popupLinkTracker.consumeFrom(opener)?.let { raw ->
+            normalizePopupUrl(raw)?.let { normalized ->
+                PopupNavigationUrl.acceptOrLog("tracker-resolve", normalized)?.let { return it }
+            }
+        }
+
+        val hit = opener.hitTestResult ?: return null
+        if (hit.type == WebView.HitTestResult.SRC_ANCHOR_TYPE) {
+            hit.extra?.let { raw ->
+                normalizePopupUrl(raw)?.let { normalized ->
+                    PopupNavigationUrl.acceptOrLog("anchor-hit", normalized)?.let { return it }
+                }
+            }
+        }
+        if (hit.type == WebView.HitTestResult.SRC_IMAGE_ANCHOR_TYPE) {
+            hit.extra?.let { raw ->
+                normalizePopupUrl(raw)?.let { normalized ->
+                    PopupNavigationUrl.acceptOrLog("image-anchor-hit", normalized)?.let { return it }
+                }
+            }
+        }
+        Log.i(TabManager.TAG, "resolvePopupUrl: no document URL; defer to transport")
         return null
     }
 

@@ -22,6 +22,20 @@ object DesktopViewportHelper {
             if (document.documentElement) {
               document.documentElement.style.width = '100%';
             }
+            if (!window.__folddeskLinkCapture) {
+              window.__folddeskLinkCapture = true;
+              document.addEventListener('click', function(e) {
+                try {
+                  var t = e.target;
+                  if (!t || !t.closest) return;
+                  var a = t.closest('a[href]');
+                  if (!a || !a.href) return;
+                  if (typeof FoldDeskBridge !== 'undefined' && FoldDeskBridge.notifyAnchorClick) {
+                    FoldDeskBridge.notifyAnchorClick(a.href, a.target || '');
+                  }
+                } catch (err) {}
+              }, true);
+            }
           } catch (e) {}
         })();
     """
