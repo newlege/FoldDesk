@@ -2,14 +2,13 @@ package com.folddesk.browser
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.webkit.UserAgentMetadata
-import androidx.webkit.WebSettingsCompat
-import androidx.webkit.WebViewFeature
 import com.folddesk.browser.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -23,12 +22,22 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        configureWebView(binding.webView)
-        binding.webView.webViewClient = FoldDeskWebViewClient(
-            onPageStarted = { syncAddressBar(it) },
-            onPageFinished = { syncAddressBar(it) },
-        )
-        binding.webView.webChromeClient = android.webkit.WebChromeClient()
+        try {
+            configureWebView(binding.webView)
+            binding.webView.webViewClient = FoldDeskWebViewClient(
+                onPageStarted = { syncAddressBar(it) },
+                onPageFinished = { syncAddressBar(it) },
+            )
+            binding.webView.webChromeClient = android.webkit.WebChromeClient()
+        } catch (t: Throwable) {
+            Log.e(TAG, "WebView setup failed", t)
+            Toast.makeText(
+                this,
+                getString(R.string.error_webview_init),
+                Toast.LENGTH_LONG,
+            ).show()
+            return
+        }
 
         binding.buttonBack.setOnClickListener {
             if (binding.webView.canGoBack()) binding.webView.goBack()
@@ -49,8 +58,24 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if (savedInstanceState == null) {
+        if (savedInstanceState != null) {
+            try {
+                binding.webView.restoreState(savedInstanceState)
+            } catch (t: Throwable) {
+                Log.w(TAG, "WebView state restore failed; loading start page", t)
+                loadStartPage()
+            }
+        } else {
+            loadStartPage()
+        }
+    }
+
+    private fun loadStartPage() {
+        try {
             binding.webView.loadUrl(startPageUrl, DesktopUserAgent.extraHttpHeaders())
+        } catch (t: Throwable) {
+            Log.e(TAG, "Failed to load start page", t)
+            Toast.makeText(this, getString(R.string.error_webview_init), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -58,7 +83,6 @@ class MainActivity : AppCompatActivity() {
         val settings = webView.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.databaseEnabled = true
         settings.loadsImagesAutomatically = true
         settings.mediaPlaybackRequiresUserGesture = false
 
@@ -73,38 +97,8 @@ class MainActivity : AppCompatActivity() {
 
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
 
-        applyDesktopClientHints(settings)
+        DesktopClientHintsApplier.applySafely(settings)
     }
-
-    private fun applyDesktopClientHints(settings: WebSettings) {
-        if (!WebViewFeature.isFeatureSupported(WebViewFeature.USER_AGENT_METADATA)) {
-            return
-        }
-        val metadata = UserAgentMetadata.Builder()
-            .setBrandVersionList(
-                listOf(
-                    brandVersion("Google Chrome", "131"),
-                    brandVersion("Chromium", "131"),
-                    brandVersion("Not_A Brand", "24"),
-                ),
-            )
-            .setFullVersion("131.0.6778.69")
-            .setPlatform("Windows")
-            .setPlatformVersion("10.0.0")
-            .setArchitecture("x86")
-            .setModel("")
-            .setMobile(false)
-            .setBitness(64)
-            .setWow64(false)
-            .build()
-        WebSettingsCompat.setUserAgentMetadata(settings, metadata)
-    }
-
-    private fun brandVersion(brand: String, major: String): UserAgentMetadata.BrandVersion =
-        UserAgentMetadata.BrandVersion.Builder()
-            .setBrand(brand)
-            .setMajorVersion(major)
-            .build()
 
     private fun navigateFromAddressBar() {
         val raw = binding.editUrl.text?.toString()?.trim().orEmpty()
@@ -138,11 +132,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        binding.webView.saveState(outState)
+        try {
+            binding.webView.saveState(outState)
+        } catch (t: Throwable) {
+            Log.w(TAG, "WebView state save failed", t)
+        }
     }
 
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        binding.webView.restoreState(savedInstanceState)
+    companion object {
+        private const val TAG = "FoldDeskMain"
     }
 }

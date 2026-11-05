@@ -35,7 +35,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-        <ImageButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/buttonBack"
             android:layout_width="@dimen/chrome_button_size"
             android:layout_height="@dimen/chrome_button_size"
@@ -45,7 +45,7 @@
             android:src="@android:drawable/ic_media_previous"
             app:tint="@color/on_surface" />
 
-        <ImageButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/buttonForward"
             android:layout_width="@dimen/chrome_button_size"
             android:layout_height="@dimen/chrome_button_size"
@@ -55,7 +55,7 @@
             android:src="@android:drawable/ic_media_next"
             app:tint="@color/on_surface" />
 
-        <ImageButton
+        <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/buttonReload"
             android:layout_width="@dimen/chrome_button_size"
             android:layout_height="@dimen/chrome_button_size"
@@ -87,7 +87,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/buttonGo"
-            style="@style/Widget.Material3.Button.TonalButton"
+            style="@style/Widget.MaterialComponents.Button"
             android:layout_width="wrap_content"
             android:layout_height="@dimen/chrome_button_size"
             android:layout_marginStart="12dp"
