@@ -1,6 +1,5 @@
 package com.folddesk.browser
 
-import android.net.Uri
 import android.util.Log
 
 object PopupNavigationUrl {
@@ -21,14 +20,22 @@ object PopupNavigationUrl {
         if (trimmed.startsWith("tel:", ignoreCase = true)) return false
         if (trimmed.startsWith("data:", ignoreCase = true)) return false
 
-        val path = runCatching { Uri.parse(trimmed).path?.lowercase() }.getOrNull()
-        if (path.isNullOrEmpty()) {
+        val path = extractPath(trimmed)?.lowercase()
+        if (path.isNullOrEmpty() || path == "/") {
             return true
         }
         if (SUBRESOURCE_EXTENSIONS.any { path.endsWith(it) }) {
             return false
         }
         return true
+    }
+
+    private fun extractPath(url: String): String? {
+        val base = url.substringBefore('?').substringBefore('#')
+        val schemeIdx = base.indexOf("://")
+        if (schemeIdx < 0) return base
+        val pathIdx = base.indexOf('/', schemeIdx + 3)
+        return if (pathIdx < 0) "/" else base.substring(pathIdx)
     }
 
     fun acceptOrLog(source: String, raw: String?): String? {
