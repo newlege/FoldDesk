@@ -424,6 +424,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     private fun addTabChip(tab: BrowserTab) {
         val chipBinding = ItemTabBinding.inflate(LayoutInflater.from(this), binding.tabContainer, false)
         chipBinding.tabTitle.text = tab.title
+        ChromeTextWidths.applyTabTitleWidth(chipBinding.tabTitle)
         chipBinding.root.setOnClickListener { tabManager.selectTab(tab) }
         chipBinding.tabClose.setOnClickListener { closeTab(tab) }
         tabChipBindings[tab.id] = chipBinding

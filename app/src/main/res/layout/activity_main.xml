@@ -49,7 +49,7 @@
                 android:id="@+id/bookmarkScroll"
                 android:layout_width="wrap_content"
                 android:layout_height="@dimen/chrome_bookmark_bar_height"
-                android:fillViewport="true"
+                android:fillViewport="false"
                 android:scrollbars="none">
 
                 <LinearLayout

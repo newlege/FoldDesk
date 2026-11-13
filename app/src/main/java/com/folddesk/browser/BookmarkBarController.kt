@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.doOnLayout
@@ -25,7 +24,6 @@ class BookmarkBarController(
     private val inflater = LayoutInflater.from(activity)
 
     init {
-        binding.bookmarkScroll.doOnLayout { relayoutBookmarkChips() }
         binding.tabScroll.doOnLayout { applyBookmarkBarWidth() }
     }
 
@@ -41,15 +39,27 @@ class BookmarkBarController(
         if (params.width != target) {
             params.width = target
             binding.bookmarkScroll.layoutParams = params
-            binding.bookmarkScroll.post { relayoutBookmarkChips() }
         }
     }
 
     fun refresh() {
         binding.bookmarkContainer.removeAllViews()
+        val containerParams = binding.bookmarkContainer.layoutParams
+        containerParams.width = ViewGroup.LayoutParams.WRAP_CONTENT
+        binding.bookmarkContainer.layoutParams = containerParams
+
         bookmarkStore.all().forEach { entry ->
             val chip = ItemBookmarkBinding.inflate(inflater, binding.bookmarkContainer, false)
             chip.bookmarkTitle.text = entry.title
+            ChromeTextWidths.applyBookmarkTitleWidth(chip.bookmarkTitle)
+            val chipLp = chip.root.layoutParams as? LinearLayout.LayoutParams
+                ?: LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                )
+            chipLp.width = ViewGroup.LayoutParams.WRAP_CONTENT
+            chipLp.weight = 0f
+            chip.root.layoutParams = chipLp
             loadFavicon(chip.bookmarkFavicon, entry.url)
             chip.root.setOnClickListener { onOpenBookmark(entry.url) }
             chip.root.setOnLongClickListener {
@@ -61,10 +71,7 @@ class BookmarkBarController(
             }
             binding.bookmarkContainer.addView(chip.root)
         }
-        binding.bookmarkScroll.post {
-            applyBookmarkBarWidth()
-            relayoutBookmarkChips()
-        }
+        binding.bookmarkScroll.post { applyBookmarkBarWidth() }
     }
 
     fun updateStarState(isBookmarked: Boolean) {
@@ -75,42 +82,6 @@ class BookmarkBarController(
                 android.R.drawable.btn_star_big_off
             },
         )
-    }
-
-    private fun relayoutBookmarkChips() {
-        val container = binding.bookmarkContainer
-        val scrollWidth = binding.bookmarkScroll.width
-        if (scrollWidth <= 0 || container.childCount == 0) return
-
-        val minChipPx = (48 * activity.resources.displayMetrics.density).toInt()
-        val totalMin = minChipPx * container.childCount
-        val fill = totalMin <= scrollWidth
-
-        val containerParams = container.layoutParams
-        containerParams.width = if (fill) {
-            ViewGroup.LayoutParams.MATCH_PARENT
-        } else {
-            ViewGroup.LayoutParams.WRAP_CONTENT
-        }
-        container.layoutParams = containerParams
-
-        for (i in 0 until container.childCount) {
-            val child = container.getChildAt(i)
-            val lp = child.layoutParams as LinearLayout.LayoutParams
-            if (fill) {
-                lp.width = 0
-                lp.weight = 1f
-            } else {
-                lp.width = ViewGroup.LayoutParams.WRAP_CONTENT
-                lp.weight = 0f
-            }
-            child.layoutParams = lp
-            val title = child.findViewById<TextView>(R.id.bookmarkTitle)
-            title?.layoutParams = (title.layoutParams as LinearLayout.LayoutParams).apply {
-                width = if (fill) 0 else ViewGroup.LayoutParams.WRAP_CONTENT
-                weight = if (fill) 1f else 0f
-            }
-        }
     }
 
     private fun loadFavicon(imageView: ImageView, pageUrl: String) {
