@@ -1,6 +1,8 @@
 # FoldDesk Browser
 
-面向 **Android 平板与折叠屏内屏** 的轻量自定义浏览器 MVP（AndroidX WebView）。核心能力：所有 HTTP(S) 请求默认使用 **桌面版 Chrome User-Agent** 与 Client Hints 元数据，让站点优先返回桌面布局；UI 为全宽 WebView + 触控友好的地址栏，随 `sw600dp` / `sw720dp` 放大间距与控件尺寸。
+开源 Android 自定义浏览器（WebView），仓库：[https://github.com/newlege/FoldDesk](https://github.com/newlege/FoldDesk)
+
+面向 **Android 平板与折叠屏内屏** 的轻量浏览器 MVP（AndroidX WebView）。核心能力：所有 HTTP(S) 请求默认使用 **桌面版 Chrome User-Agent** 与 Client Hints 元数据，让站点优先返回桌面布局；UI 为全宽 WebView + 触控友好的地址栏，随 `sw600dp` / `sw720dp` 放大间距与控件尺寸。
 
 **非目标（本阶段）**：自编译 Chromium、扩展、账号同步、完整 PC 模式壳。
 

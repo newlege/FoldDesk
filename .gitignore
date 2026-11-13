@@ -12,5 +12,8 @@ captures/
 # SDK (optional local checkout)
 android-sdk/
 
+# Kotlin / IDE noise
+.kotlin/
+
 # OS
 .DS_Store
