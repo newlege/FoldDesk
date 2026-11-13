@@ -9,4 +9,8 @@
     <dimen name="chrome_tab_strip_height">28dp</dimen>
     <dimen name="chrome_tab_text_size">11sp</dimen>
     <dimen name="chrome_tab_close_size">22dp</dimen>
+    <dimen name="chrome_bookmark_bar_height">24dp</dimen>
+    <dimen name="chrome_bookmark_favicon_size">14dp</dimen>
+    <dimen name="chrome_bookmark_text_size">11sp</dimen>
+    <dimen name="chrome_bookmark_button_size">28dp</dimen>
 </resources>

@@ -37,6 +37,53 @@
         </HorizontalScrollView>
 
         <LinearLayout
+            android:id="@+id/bookmarkRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="@dimen/chrome_horizontal_padding"
+            android:paddingEnd="@dimen/chrome_horizontal_padding">
+
+            <HorizontalScrollView
+                android:id="@+id/bookmarkScroll"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/chrome_bookmark_bar_height"
+                android:fillViewport="false"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/bookmarkContainer"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonBookmarkStar"
+                android:layout_width="@dimen/chrome_bookmark_button_size"
+                android:layout_height="@dimen/chrome_bookmark_button_size"
+                android:layout_marginStart="4dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/bookmark_toggle"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/btn_star_big_off"
+                app:tint="@color/on_surface" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/buttonSettings"
+                android:layout_width="@dimen/chrome_bookmark_button_size"
+                android:layout_height="@dimen/chrome_bookmark_button_size"
+                android:layout_marginStart="2dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/settings"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_preferences"
+                app:tint="@color/on_surface" />
+        </LinearLayout>
+
+        <LinearLayout
             android:id="@+id/chromeBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

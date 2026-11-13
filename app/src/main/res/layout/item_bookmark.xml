@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="@dimen/chrome_bookmark_bar_height"
+    android:layout_marginEnd="4dp"
+    android:background="@drawable/bookmark_chip_background"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingStart="6dp"
+    android:paddingEnd="8dp">
+
+    <ImageView
+        android:id="@+id/bookmarkFavicon"
+        android:layout_width="@dimen/chrome_bookmark_favicon_size"
+        android:layout_height="@dimen/chrome_bookmark_favicon_size"
+        android:contentDescription="@string/bookmark_favicon"
+        android:scaleType="fitCenter"
+        tools:src="@android:drawable/sym_def_app_icon" />
+
+    <TextView
+        android:id="@+id/bookmarkTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/on_surface"
+        android:textSize="@dimen/chrome_bookmark_text_size"
+        tools:text="示例站点" />
+</LinearLayout>

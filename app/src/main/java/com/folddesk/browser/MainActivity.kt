@@ -8,7 +8,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.webkit.WebView
+import android.widget.Button
+import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -20,7 +24,9 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var tabManager: TabManager
-    private val startPageUrl = "file:///android_asset/start.html"
+    private lateinit var browserSettings: BrowserSettings
+    private lateinit var bookmarkStore: BookmarkStore
+    private lateinit var bookmarkBarController: BookmarkBarController
     private val popupLinkTracker = PopupLinkTracker()
 
     private val tabChipBindings = mutableMapOf<Long, ItemTabBinding>()
@@ -35,13 +41,25 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         tabManager = TabManager(this)
+        browserSettings = BrowserSettings(this)
+        bookmarkStore = BookmarkStore(this)
+        bookmarkBarController = BookmarkBarController(
+            activity = this,
+            binding = binding,
+            bookmarkStore = bookmarkStore,
+            onOpenBookmark = { url -> openUrlInActiveTab(url) },
+            onBookmarksChanged = { updateBookmarkStarState() },
+        )
+        bookmarkBarController.setStarClickListener { toggleBookmarkForCurrentPage() }
+        bookmarkBarController.refresh()
         applyEdgeToEdgeInsets()
 
         binding.buttonBack.setOnClickListener { tabManager.activeTab()?.webView?.let { if (it.canGoBack()) it.goBack() } }
         binding.buttonForward.setOnClickListener { tabManager.activeTab()?.webView?.let { if (it.canGoForward()) it.goForward() } }
         binding.buttonReload.setOnClickListener { tabManager.activeTab()?.webView?.reload() }
         binding.buttonGo.setOnClickListener { navigateFromAddressBar() }
-        binding.buttonNewTab.setOnClickListener { tabManager.createTab(startPageUrl) }
+        binding.buttonNewTab.setOnClickListener { tabManager.createTab(blankTabStartUrl()) }
+        binding.buttonSettings.setOnClickListener { showStartPageSettingsDialog() }
         binding.editUrl.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_GO ||
                 (event?.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN)
@@ -56,8 +74,107 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         if (savedInstanceState != null) {
             restoreTabs(savedInstanceState)
         } else {
-            tabManager.createTab(startPageUrl)
+            tabManager.createTab(blankTabStartUrl())
         }
+    }
+
+    private fun blankTabStartUrl(): String = browserSettings.startPageUrl()
+
+    private fun loadUrlWithDesktopHeaders(webView: WebView, url: String) {
+        webView.loadUrl(url, DesktopUserAgent.extraHttpHeaders())
+    }
+
+    private fun openUrlInActiveTab(url: String) {
+        val tab = tabManager.activeTab() ?: return
+        loadUrlWithDesktopHeaders(tab.webView, url)
+    }
+
+    fun toggleBookmarkForCurrentPage() {
+        val tab = tabManager.activeTab() ?: return
+        val url = tab.webView.url
+        if (url.isNullOrBlank() || url == "about:blank" || browserSettings.isStartPageDisplayUrl(url)) {
+            Toast.makeText(this, getString(R.string.bookmark_no_page), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (bookmarkStore.contains(url)) {
+            bookmarkStore.remove(url)
+            Toast.makeText(this, getString(R.string.bookmark_removed), Toast.LENGTH_SHORT).show()
+        } else {
+            val title = tab.title.ifBlank { url }
+            bookmarkStore.add(BookmarkEntry(url = url, title = title))
+            Toast.makeText(this, getString(R.string.bookmark_added), Toast.LENGTH_SHORT).show()
+        }
+        bookmarkBarController.refresh()
+        updateBookmarkStarState()
+    }
+
+    fun updateBookmarkStarState() {
+        val url = tabManager.activeTab()?.webView?.url
+        bookmarkBarController.updateStarState(
+            !url.isNullOrBlank() && bookmarkStore.contains(url),
+        )
+    }
+
+    private fun showStartPageSettingsDialog() {
+        val input = EditText(this).apply {
+            setHint(R.string.start_page_settings_hint)
+            setText(browserSettings.customStartPageUrl().orEmpty())
+            setSingleLine(true)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+        }
+        val padding = (20 * resources.displayMetrics.density).toInt()
+        val resetDefault = Button(this).apply {
+            setText(R.string.start_page_reset_default)
+            setOnClickListener {
+                browserSettings.setCustomStartPageUrl(null)
+                input.setText("")
+                Toast.makeText(this@MainActivity, R.string.start_page_reset_done, Toast.LENGTH_SHORT).show()
+                syncAddressBar(tabManager.activeTab()?.webView?.url)
+            }
+        }
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(padding, padding / 2, padding, 0)
+            addView(input)
+            addView(resetDefault)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.start_page_settings_title)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ -> applyStartPageFromField(input) }
+            .setNegativeButton(R.string.cancel, null)
+            .setNeutralButton(R.string.start_page_use_current) { _, _ -> applyCurrentPageAsStartPage(input) }
+            .show()
+    }
+
+    private fun applyStartPageFromField(input: EditText) {
+        val raw = input.text?.toString()?.trim().orEmpty()
+        if (raw.isEmpty()) {
+            browserSettings.setCustomStartPageUrl(null)
+            Toast.makeText(this, R.string.start_page_reset_done, Toast.LENGTH_SHORT).show()
+        } else if (!StartPageUrl.isValidCustomStartUrl(raw)) {
+            Toast.makeText(this, R.string.start_page_invalid, Toast.LENGTH_SHORT).show()
+            return
+        } else {
+            browserSettings.setCustomStartPageUrl(raw)
+            Toast.makeText(this, R.string.start_page_saved, Toast.LENGTH_SHORT).show()
+        }
+        syncAddressBar(tabManager.activeTab()?.webView?.url)
+    }
+
+    private fun applyCurrentPageAsStartPage(input: EditText) {
+        val url = tabManager.activeTab()?.webView?.url
+        if (url.isNullOrBlank() || url == "about:blank" || !StartPageUrl.isValidCustomStartUrl(url)) {
+            Toast.makeText(this, R.string.start_page_invalid, Toast.LENGTH_SHORT).show()
+            return
+        }
+        browserSettings.setCustomStartPageUrl(url)
+        input.setText(url)
+        Toast.makeText(this, R.string.start_page_saved, Toast.LENGTH_SHORT).show()
+        syncAddressBar(url)
     }
 
     private fun applyEdgeToEdgeInsets() {
@@ -106,6 +223,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         }
         updateTabChipSelection(active.id)
         syncAddressBar(active.webView.url)
+        updateBookmarkStarState()
         binding.tabScroll.post {
             tabChipBindings[active.id]?.root?.let { chip ->
                 binding.tabScroll.smoothScrollTo(chip.left, 0)
@@ -158,14 +276,20 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
             if (tab.id == pendingPopupTabId && isRealNavigation(url)) {
                 completePopupHandoff(tab, url)
             }
-            if (tabManager.activeTab()?.id == tab.id) syncAddressBar(url)
+            if (tabManager.activeTab()?.id == tab.id) {
+                syncAddressBar(url)
+                updateBookmarkStarState()
+            }
         }
 
         override fun onPageFinished(tab: BrowserTab, url: String?) {
             if (tab.id == pendingPopupTabId && isRealNavigation(url)) {
                 completePopupHandoff(tab, url)
             }
-            if (tabManager.activeTab()?.id == tab.id) syncAddressBar(url)
+            if (tabManager.activeTab()?.id == tab.id) {
+                syncAddressBar(url)
+                updateBookmarkStarState()
+            }
             updateTabChipTitle(tab)
         }
 
@@ -300,6 +424,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
     private fun addTabChip(tab: BrowserTab) {
         val chipBinding = ItemTabBinding.inflate(LayoutInflater.from(this), binding.tabContainer, false)
         chipBinding.tabTitle.text = tab.title
+        ChromeTextWidths.applyTabTitleWidth(chipBinding.tabTitle)
         chipBinding.root.setOnClickListener { tabManager.selectTab(tab) }
         chipBinding.tabClose.setOnClickListener { closeTab(tab) }
         tabChipBindings[tab.id] = chipBinding
@@ -321,10 +446,11 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
             clearPopupHandoff()
         }
         tabManager.closeTab(tab) { last ->
-            last.webView.loadUrl(startPageUrl, DesktopUserAgent.extraHttpHeaders())
+            val start = blankTabStartUrl()
+            loadUrlWithDesktopHeaders(last.webView, start)
             last.title = getString(R.string.tab_default_title)
             updateTabChipTitle(last)
-            syncAddressBar(startPageUrl)
+            syncAddressBar(start)
         }
         if (tabManager.allTabs().none { it.id == tab.id }) {
             tabChipBindings.remove(tab.id)?.root?.let { binding.tabContainer.removeView(it) }
@@ -342,7 +468,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
 
     private fun syncAddressBar(url: String?) {
         if (url.isNullOrBlank()) return
-        if (url == startPageUrl || url == "about:blank") {
+        if (browserSettings.isStartPageDisplayUrl(url) || url == "about:blank") {
             binding.editUrl.setText("")
             binding.editUrl.hint = getString(R.string.hint_home)
         } else {
@@ -356,7 +482,7 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         val urls = savedInstanceState.getStringArrayList(STATE_TAB_URLS)
         val titles = savedInstanceState.getStringArrayList(STATE_TAB_TITLES)
         if (urls.isNullOrEmpty()) {
-            tabManager.createTab(startPageUrl)
+            tabManager.createTab(blankTabStartUrl())
             return
         }
         urls.forEachIndexed { index, url ->
@@ -378,7 +504,10 @@ class MainActivity : AppCompatActivity(), TabManager.TabHost {
         val tabs = tabManager.allTabs()
         outState.putLong(STATE_NEXT_TAB_ID, tabManager.nextTabIdSeed())
         outState.putLong(STATE_ACTIVE_TAB_ID, tabManager.activeTab()?.id ?: -1L)
-        outState.putStringArrayList(STATE_TAB_URLS, ArrayList(tabs.map { it.webView.url ?: startPageUrl }))
+        outState.putStringArrayList(
+            STATE_TAB_URLS,
+            ArrayList(tabs.map { it.webView.url ?: blankTabStartUrl() }),
+        )
         outState.putStringArrayList(STATE_TAB_TITLES, ArrayList(tabs.map { it.title }))
         tabs.forEachIndexed { index, tab ->
             try {
